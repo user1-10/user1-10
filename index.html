@@ -635,15 +635,25 @@ body{
 .tab.on span{font-weight:650;}
 .fab{
   position:absolute;right:18px;bottom:calc(74px + var(--safe-b));
-  width:52px;height:52px;border-radius:50%;border:none;background:var(--red);color:#fff;
-  font-size:29px;font-weight:300;line-height:1;cursor:pointer;
-  box-shadow:0 6px 18px rgba(250,81,81,.42);z-index:40;
-  display:flex;align-items:center;justify-content:center;padding-bottom:3px;
+  width:56px;height:56px;aspect-ratio:1;flex:none;
+  border:none;border-radius:50%;cursor:pointer;z-index:40;
+  -webkit-appearance:none;appearance:none;
+  background:radial-gradient(circle at 32% 28%,#FF7A7A 0%,var(--red) 52%,#E23B43 100%);
+  color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 8px 20px rgba(250,81,81,.42),inset 0 1px 1px rgba(255,255,255,.45);
   transition:transform .24s var(--e-spring),box-shadow .24s var(--e-io);
   animation:fabIn .5s var(--e-spring) backwards;
 }
+.fab svg{width:25px;height:25px;display:block;stroke:#fff;stroke-width:2.4;stroke-linecap:round;fill:none;}
+.fab::after{
+  content:'';position:absolute;inset:-5px;border-radius:50%;pointer-events:none;
+  box-shadow:0 0 0 0 rgba(250,81,81,.32);transition:box-shadow .3s var(--e-io);
+}
+.fab:active{transform:scale(.86) rotate(90deg);
+  box-shadow:0 4px 12px rgba(250,81,81,.36),inset 0 1px 1px rgba(255,255,255,.4);}
+.fab:active::after{box-shadow:0 0 0 6px rgba(250,81,81,.16);}
 @keyframes fabIn{from{opacity:0;transform:scale(.4) translateY(14px);}to{opacity:1;transform:none;}}
-.fab:active{transform:scale(.88) rotate(45deg);box-shadow:0 3px 10px rgba(250,81,81,.36);}
 
 /* ---------- modal ---------- */
 .mask{
@@ -884,7 +894,9 @@ body{
     </button>
   </div>
 
-  <button class="fab" id="fab" data-act="create">+</button>
+  <button class="fab" id="fab" data-act="create" aria-label="新建日程">
+    <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+  </button>
 
   <!-- ===== editor ===== -->
   <div class="mask" id="mask"></div>
