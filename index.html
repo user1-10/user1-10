@@ -1391,7 +1391,7 @@ function renderAgenda(){
 function renderStats(){
   var box=$('statsWrap'); if(!box) return;
   var dim=S.statDim||'month', cur=S.cursor;
-  var buckets=[], byCat={}, total=0, hours=0, activeDays=0, busiest={label:'',h:0};
+  var buckets=[], byCat={}, total=0, hours=0, activeDays=0, busiest={label:'',h:0}, noted=[];
   var title='', sub='', n=0, start=null;
 
   if(dim==='year'){
@@ -1400,7 +1400,7 @@ function renderStats(){
       var dd=new Date(y,mi+1,0).getDate(), h=0, c=0;
       for(var di=1;di<=dd;di++){
         var lst=eventsOn(new Date(y,mi,di));
-        for(var k=0;k<lst.length;k++){ var v=durH(lst[k]); h+=v; c++; byCat[lst[k].category]=(byCat[lst[k].category]||0)+v; }
+        for(var k=0;k<lst.length;k++){ var v=durH(lst[k]); h+=v; c++; byCat[lst[k].category]=(byCat[lst[k].category]||0)+v; if(lst[k].desc&&lst[k].desc.trim()) noted.push({title:lst[k].title,desc:lst[k].desc.trim(),date:new Date(y,mi,di)}); }
       }
       total+=c; hours+=h; if(h>0) activeDays++;
       if(h>busiest.h){ busiest={label:(mi+1)+'月',h:h}; }
@@ -1421,7 +1421,7 @@ function renderStats(){
     for(var i=0;i<n;i++){
       var d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+i);
       var ll=eventsOn(d), h=0;
-      for(var k=0;k<ll.length;k++){ var v=durH(ll[k]); h+=v; byCat[ll[k].category]=(byCat[ll[k].category]||0)+v; }
+      for(var k=0;k<ll.length;k++){ var v=durH(ll[k]); h+=v; byCat[ll[k].category]=(byCat[ll[k].category]||0)+v; if(ll[k].desc&&ll[k].desc.trim()) noted.push({title:ll[k].title,desc:ll[k].desc.trim(),date:d}); }
       total+=ll.length; hours+=h; if(h>0) activeDays++;
       if(h>busiest.h){ busiest={label:(d.getMonth()+1)+'月'+d.getDate()+'日',h:h}; }
       buckets.push({label:(dim==='week')?wd[i]:((d.getMonth()+1)+'/'+d.getDate()), h:h, c:ll.length, date:d});
@@ -1464,6 +1464,7 @@ function renderStats(){
     if(avg>9) lines.push('负荷偏高，注意留出休息与缓冲时间。');
     else if(activeDays>0 && (dim==='year'?activeDays<5:activeDays<n*0.3)) lines.push((dim==='year'?'今年':'本周/本月')+'比较空，适合安排一些长期想做但一直搁置的事。');
     else lines.push('节奏比较健康，保持这个安排密度。');
+    var nl=notedLine(noted); if(nl) lines.push(nl);
   }
   html+='<div class="sc"><h3><i class="ic" style="background:var(--purple)">✦</i>智能总结</h3><div class="summary">'+
     lines.map(function(t){ return '<div class="li"><i class="bullet"></i><div>'+t+'</div></div>'; }).join('')+'</div></div>';
@@ -1854,6 +1855,18 @@ function collect(start,end){
   return A;
 }
 
+/* 备注提取：把带备注的日程汇总成一条总结文案（统计页与报告共用） */
+function notedLine(noted){
+  if(!noted || !noted.length) return '';
+  var ex=noted.slice(0,3).map(function(n){
+    var t=esc(n.title);
+    var dt=(n.date.getMonth()+1)+'月'+n.date.getDate()+'日';
+    var d=n.desc; if(d.length>34) d=d.slice(0,34)+'…'; d=esc(d);
+    return '<b>'+t+'</b>（'+dt+'：'+d+'）';
+  }).join('；');
+  return '其中 <b>'+noted.length+'</b> 条日程附有备注，值得留意：'+ex+(noted.length>3?' 等':'')+'。';
+}
+
 /* 生成总结文字（复用于报告） */
 function summaryLines(A,R){
   var L=[];
@@ -1879,6 +1892,16 @@ function summaryLines(A,R){
   var wmax=0, wi=0;
   for(var w=0;w<7;w++){ if(A.byWeekday[w]>wmax){ wmax=A.byWeekday[w]; wi=w; } }
   if(wmax>0) L.push('从星期分布看，<b>'+WD[wi]+'</b> 的安排最多（'+wmax+' 项），可据此调整节奏。');
+  /* 备注提取：把带备注的日程摘要进智能总结 */
+  var noted=[];
+  for(var di=0; di<A.days.length; di++){
+    var dl=A.days[di].list;
+    for(var nj=0; nj<dl.length; nj++){
+      var ev=dl[nj];
+      if(ev.desc && ev.desc.trim()) noted.push({ title:ev.title, desc:ev.desc.trim(), date:A.days[di].date });
+    }
+  }
+  var nl=notedLine(noted); if(nl) L.push(nl);
   if(A.avg>9) L.push('整体负荷偏高，建议主动预留休息与缓冲时段，避免长期透支。');
   else if(A.activeDays>0&&A.activeDays<A.span*0.3) L.push('整体较为空闲，适合安排一些长期想做但一直搁置的事情。');
   else L.push('整体节奏比较均衡，保持当前的安排密度即可。');
