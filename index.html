@@ -2355,14 +2355,15 @@ function boot(){
       if(w) w.addEventListener('scroll', map[id], {passive:true});
     }
   },'wheel-listeners');
-  /* 彻底关闭 Service Worker：个人自用 App 不需要离线缓存，SW 的缓存层反而是“突然打不开/卡死”的隐患。
-     启动时主动注销任何已安装的 SW，并清空其缓存，确保页面永远从服务器拿到最新内容，不会被旧缓存锁死。 */
+  /* 离线缓存 Service Worker（v9）：让 App 装到手机后，即便 GitHub 在大陆连不上也能离线打开。
+     启动时先注销任何旧 SW（清掉早期 bug 版残留），再注册正确版 SW；不监听 controllerchange、不做 reload，杜绝刷新死循环。 */
   if('serviceWorker' in navigator){
-    try{
+    window.addEventListener('load', function(){
+      var regNew = function(){ navigator.serviceWorker.register('./sw.js').catch(function(){}); };
       navigator.serviceWorker.getRegistrations().then(function(regs){
-        regs.forEach(function(r){ r.unregister(); });
-      }).catch(function(){});
-    }catch(e){}
+        Promise.all(regs.map(function(r){ return r.unregister(); })).then(regNew, regNew);
+      }).catch(regNew);
+    });
   }
 }
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot);
